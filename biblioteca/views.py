@@ -20,7 +20,7 @@ class LibroViewSet(viewsets.ModelViewSet):
     serializer_class = LibroSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['genero', 'disponible', 'autor']
-    search_fields = ['titulo', 'autor_nombre', 'autor_apellido']
+    search_fields = ['titulo', 'autor_nombre', 'autor__apellido']
     ordering_fields = ['titulo', 'fecha_publicacion']
     ordering = ['-fecha_publicacion']
     
@@ -34,7 +34,7 @@ class LibroViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def prestar(self, request, pk=None):
         """Endpoint para prestar un libro"""
-        libro = self.get.object()
+        libro = self.get_object()
         if not libro.disponible:
             return Response(
                 {'error': 'Libro no disponible'},
@@ -45,12 +45,13 @@ class LibroViewSet(viewsets.ModelViewSet):
             libro=libro,
             usuario=request.user
         )
-        libro_disponible = False
+        libro.disponible = False
         libro.save()
         
         return Response({'mensaje': f'Libro "{libro.titulo}" prestado exitosamente'})
     
 class PrestamoViewSet(viewsets.ModelViewSet):
+    queryset = Prestamo.objects.select_related('libro', 'usuario').all()
     serializer_class = PrestamoSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['devuelto', 'usuario']
